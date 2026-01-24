@@ -1,18 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name: string | null;
-    image: string | null;
-    provider: string;
-    providerId: string;
-  };
-}
-
 export const isAuthenticated = (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {

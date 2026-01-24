@@ -1,12 +1,12 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { isAuthenticated, AuthenticatedRequest } from '../middleware/auth.js';
+import { isAuthenticated } from '../middleware/auth.js';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get all milestones for the current user
-router.get('/', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const milestones = await prisma.milestone.findMany({
       where: { userId: req.user!.id },
@@ -19,7 +19,7 @@ router.get('/', isAuthenticated, async (req: AuthenticatedRequest, res: Response
 });
 
 // Create a new milestone
-router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const { title, description, type, tags } = req.body;
 
@@ -47,9 +47,9 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
 });
 
 // Update a milestone
-router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:id', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { title, description, type, tags, completed } = req.body;
 
     // Verify ownership
@@ -102,9 +102,9 @@ router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Res
 });
 
 // Delete a milestone
-router.delete('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     // Verify ownership
     const existing = await prisma.milestone.findFirst({
@@ -125,7 +125,7 @@ router.delete('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Re
 });
 
 // Reorder milestones
-router.post('/reorder', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/reorder', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const { orderedIds } = req.body as { orderedIds: string[] };
 

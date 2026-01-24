@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import passport from '../config/passport.js';
-import { AuthenticatedRequest } from '../middleware/auth.js';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -76,7 +75,7 @@ router.get(
 );
 
 // Get current user
-router.get('/me', (req: AuthenticatedRequest, res) => {
+router.get('/me', (req: Request, res: Response) => {
   if (req.isAuthenticated && req.isAuthenticated()) {
     res.json({ user: req.user });
   } else {
