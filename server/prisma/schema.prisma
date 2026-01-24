@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String?
+  image         String?
+  provider      String      // 'google' or 'github'
+  providerId    String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  milestones    Milestone[]
+
+  @@unique([provider, providerId])
+  @@map("users")
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime @default(now())
+  completed   Boolean  @default(false)
+  type        String   @default("feature") // 'feature', 'release', 'fix', 'internal'
+  tags        String[] @default([])
+  order       Int      @default(0)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("milestones")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+
+  @@map("sessions")
+}

@@ -1,20 +1,29 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Milestone } from './types';
-import { INITIAL_MILESTONES } from './constants';
 import { MilestoneNode } from './components/MilestoneNode';
+import { LoginPage } from './components/LoginPage';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useMilestones } from './hooks/useMilestones';
+import { Milestone } from './api/client';
 import {
   GitBranch,
   Plus,
   X,
-  AlertTriangle
+  AlertTriangle,
+  LogOut,
+  Loader2
 } from 'lucide-react';
 
-const App: React.FC = () => {
-  const [milestones, setMilestones] = useState<Milestone[]>(() => {
-    const saved = localStorage.getItem('milestones');
-    return saved ? JSON.parse(saved) : INITIAL_MILESTONES;
-  });
+const MilestoneTracker: React.FC = () => {
+  const { user, logout } = useAuth();
+  const {
+    milestones,
+    loading,
+    createMilestone,
+    completeMilestone,
+    canCompleteMilestone,
+  } = useMilestones();
+
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState<Milestone | null>(null);
@@ -29,12 +38,10 @@ const App: React.FC = () => {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    localStorage.setItem('milestones', JSON.stringify(milestones));
-  }, [milestones]);
-
   // Initial Auto-Scroll to first incomplete milestone
   useEffect(() => {
+    if (loading || milestones.length === 0) return;
+
     const timer = setTimeout(() => {
       if (scrollContainerRef.current) {
         const firstIncompleteIndex = milestones.findIndex(m => !m.completed);
@@ -47,21 +54,7 @@ const App: React.FC = () => {
       }
     }, 800);
     return () => clearTimeout(timer);
-  }, []);
-
-  // Check if milestone can be completed (all previous milestones must be completed)
-  const canCompleteMilestone = (milestoneId: string): boolean => {
-    const index = milestones.findIndex(m => m.id === milestoneId);
-    if (index === -1) return false;
-
-    // All previous milestones must be completed
-    for (let i = 0; i < index; i++) {
-      if (!milestones[i].completed) {
-        return false;
-      }
-    }
-    return true;
-  };
+  }, [loading, milestones.length]);
 
   const handleToggleMilestone = (id: string) => {
     const milestone = milestones.find(m => m.id === id);
@@ -77,41 +70,50 @@ const App: React.FC = () => {
     setConfirmComplete(milestone);
   };
 
-  const confirmCompleteMilestone = () => {
+  const confirmCompleteMilestoneHandler = async () => {
     if (!confirmComplete) return;
 
-    setMilestones(prev => prev.map(m =>
-      m.id === confirmComplete.id ? { ...m, completed: true } : m
-    ));
-
-    // Update selected milestone if it's the same
-    if (selectedMilestone?.id === confirmComplete.id) {
-      setSelectedMilestone({ ...confirmComplete, completed: true });
+    try {
+      const updated = await completeMilestone(confirmComplete.id);
+      // Update selected milestone if it's the same
+      if (selectedMilestone?.id === confirmComplete.id) {
+        setSelectedMilestone(updated);
+      }
+    } catch (error) {
+      console.error('Failed to complete milestone:', error);
     }
 
     setConfirmComplete(null);
   };
 
-  const handleAddMilestone = () => {
+  const handleAddMilestone = async () => {
     if (!newMilestone.title.trim()) return;
 
-    const milestone: Milestone = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newMilestone.title.trim(),
-      description: newMilestone.description.trim(),
-      date: new Date().toISOString().split('T')[0],
-      completed: false,
-      type: newMilestone.type,
-      tags: newMilestone.tags.split(',').map(t => t.trim()).filter(t => t)
-    };
+    try {
+      await createMilestone({
+        title: newMilestone.title.trim(),
+        description: newMilestone.description.trim(),
+        type: newMilestone.type,
+        tags: newMilestone.tags.split(',').map(t => t.trim()).filter(t => t)
+      });
 
-    setMilestones(prev => [...prev, milestone]);
-    setNewMilestone({ title: '', description: '', type: 'feature', tags: '' });
-    setIsAdding(false);
+      setNewMilestone({ title: '', description: '', type: 'feature', tags: '' });
+      setIsAdding(false);
+    } catch (error) {
+      console.error('Failed to create milestone:', error);
+    }
   };
 
   const completedCount = milestones.filter(m => m.completed).length;
   const progressPercent = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#0d1117]">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0d1117]">
@@ -128,6 +130,30 @@ const App: React.FC = () => {
               <p className="text-[10px] text-gray-500">Track your progress</p>
             </div>
           </div>
+
+          {/* User Info */}
+          {user && (
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-800">
+              {user.image ? (
+                <img src={user.image} alt={user.name || ''} className="w-8 h-8 rounded-full" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                  {user.name?.[0] || user.email[0]}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-white truncate">{user.name || user.email}</p>
+                <p className="text-[10px] text-gray-500 truncate">{user.provider}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-800 rounded transition-colors"
+                title="Logout"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          )}
 
           {/* Progress Section */}
           <div className="mb-6">
@@ -202,28 +228,51 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {milestones.map((milestone, index) => (
-              <MilestoneNode
-                key={milestone.id}
-                milestone={milestone}
-                isLast={index === milestones.length - 1}
-                canComplete={canCompleteMilestone(milestone.id)}
-                onToggle={handleToggleMilestone}
-                onSelect={setSelectedMilestone}
-              />
-            ))}
-
-            <div className="h-24 flex items-center justify-center">
-              <button
-                onClick={() => setIsAdding(true)}
-                className="group flex flex-col items-center gap-2 text-gray-600 hover:text-blue-400 transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-700 group-hover:border-blue-500 flex items-center justify-center">
-                  <Plus size={16} />
+            {milestones.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                  <GitBranch className="text-gray-600" size={32} />
                 </div>
-                <span className="text-xs font-semibold uppercase tracking-widest">End of Path</span>
-              </button>
-            </div>
+                <h3 className="text-lg font-semibold text-gray-400 mb-2">No milestones yet</h3>
+                <p className="text-gray-500 text-sm mb-6">Create your first milestone to start tracking progress</p>
+                <button
+                  onClick={() => setIsAdding(true)}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
+                >
+                  <Plus size={18} />
+                  Create Milestone
+                </button>
+              </div>
+            ) : (
+              <>
+                {milestones.map((milestone, index) => (
+                  <MilestoneNode
+                    key={milestone.id}
+                    milestone={{
+                      ...milestone,
+                      date: new Date(milestone.date).toISOString().split('T')[0],
+                      description: milestone.description || '',
+                    }}
+                    isLast={index === milestones.length - 1}
+                    canComplete={canCompleteMilestone(milestone.id)}
+                    onToggle={handleToggleMilestone}
+                    onSelect={(m) => setSelectedMilestone(milestone)}
+                  />
+                ))}
+
+                <div className="h-24 flex items-center justify-center">
+                  <button
+                    onClick={() => setIsAdding(true)}
+                    className="group flex flex-col items-center gap-2 text-gray-600 hover:text-blue-400 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-700 group-hover:border-blue-500 flex items-center justify-center">
+                      <Plus size={16} />
+                    </div>
+                    <span className="text-xs font-semibold uppercase tracking-widest">End of Path</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -259,11 +308,13 @@ const App: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-[#0d1117] rounded-lg border border-gray-800">
                       <span className="block text-[10px] text-gray-500 uppercase mb-1">Created At</span>
-                      <span className="text-sm font-mono text-gray-300">{selectedMilestone.date}</span>
+                      <span className="text-sm font-mono text-gray-300">
+                        {new Date(selectedMilestone.date).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="p-3 bg-[#0d1117] rounded-lg border border-gray-800">
                       <span className="block text-[10px] text-gray-500 uppercase mb-1">ID</span>
-                      <span className="text-sm font-mono text-gray-300">#{selectedMilestone.id.substr(0, 6)}</span>
+                      <span className="text-sm font-mono text-gray-300">#{selectedMilestone.id.slice(0, 6)}</span>
                     </div>
                   </div>
                 </div>
@@ -419,7 +470,7 @@ const App: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={confirmCompleteMilestone}
+                onClick={confirmCompleteMilestoneHandler}
                 className="flex-1 py-3 rounded-xl font-bold bg-green-600 text-white hover:bg-green-500 transition-all shadow-lg shadow-green-900/20"
               >
                 Complete
@@ -440,6 +491,32 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#0d1117]">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  return <MilestoneTracker />;
 };
 
 export default App;
