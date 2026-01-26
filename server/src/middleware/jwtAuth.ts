@@ -4,14 +4,6 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
-  }
-}
-
 export const jwtAuth = async (
   req: Request,
   res: Response,
@@ -44,7 +36,7 @@ export const jwtAuth = async (
       return;
     }
 
-    req.user = payload;
+    req.user = user;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Authentication failed' });
