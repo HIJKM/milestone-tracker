@@ -53,7 +53,7 @@ router.get(
   passport.authenticate('google', {
     failureRedirect: `${CLIENT_URL}/login?error=google_failed`,
   }),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.redirect(CLIENT_URL);
   }
 );
@@ -69,7 +69,7 @@ router.get(
   passport.authenticate('github', {
     failureRedirect: `${CLIENT_URL}/login?error=github_failed`,
   }),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.redirect(CLIENT_URL);
   }
 );
