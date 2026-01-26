@@ -94,18 +94,18 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
           </div>
 
           {/* Title */}
-          <h3 className={`text-lg font-semibold break-words word-break ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-300'}`}>
+          <h3 className={`text-xl font-semibold break-words word-break ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-300'}`}>
             {milestone.title}
           </h3>
 
           {/* Date */}
-          <div className="flex items-center text-[10px] text-gray-500">
+          <div className="flex items-center text-xs text-gray-500">
             <Clock size={10} className="mr-1" />
             {milestone.date}
           </div>
 
           {/* Description */}
-          <p className={`text-xs line-clamp-2 ${isLocked ? 'text-gray-600' : 'text-gray-400'}`}>
+          <p className={`text-sm line-clamp-2 ${isLocked ? 'text-gray-600' : 'text-gray-400'}`}>
             {milestone.description}
           </p>
 
@@ -113,7 +113,7 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
           {milestone.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {milestone.tags.slice(0, 2).map(tag => (
-                <span key={tag} className="flex items-center text-[8px] px-1.5 py-0.5 bg-[#21262d] text-gray-400 rounded-full border border-gray-700">
+                <span key={tag} className="flex items-center text-[10px] px-1.5 py-0.5 bg-[#21262d] text-gray-400 rounded-full border border-gray-700">
                   <Tag size={8} className="mr-0.5" />
                   {tag}
                 </span>
