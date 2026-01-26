@@ -35,7 +35,14 @@ const MilestoneTracker: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<Milestone | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [reorderMilestones, setReorderMilestones] = useState<Milestone[]>([]);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragState, setDragState] = useState({
+    activeId: null as string | null,
+    initialY: 0,
+    currentY: 0,
+    startIndex: -1,
+    currentIndex: -1,
+    itemHeight: 0
+  });
 
   // New milestone form state
   const [newMilestone, setNewMilestone] = useState({
@@ -118,36 +125,76 @@ const MilestoneTracker: React.FC = () => {
     setIsReordering(true);
   };
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, id: string, index: number) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const element = (e.currentTarget as HTMLElement).closest('.milestone-item');
+    const height = element?.getBoundingClientRect().height || 0;
+
+    setDragState({
+      activeId: id,
+      initialY: clientY,
+      currentY: clientY,
+      startIndex: index,
+      currentIndex: index,
+      itemHeight: height
+    });
+
+    document.body.style.userSelect = 'none';
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  useEffect(() => {
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!dragState.activeId) return;
 
-    if (!draggedId || draggedId === targetId) return;
+      const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
+      const deltaY = clientY - dragState.initialY;
+      const offsetIndex = Math.round(deltaY / (dragState.itemHeight + 8)); // 8 is the gap + padding
+      let newIndex = dragState.startIndex + offsetIndex;
+      newIndex = Math.max(0, Math.min(reorderMilestones.length - 1, newIndex));
 
-    const draggedIndex = reorderMilestones.findIndex(m => m.id === draggedId);
-    const targetIndex = reorderMilestones.findIndex(m => m.id === targetId);
+      setDragState(prev => ({
+        ...prev,
+        currentY: clientY,
+        currentIndex: newIndex
+      }));
+    };
 
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    const handleEnd = () => {
+      if (!dragState.activeId) return;
 
-    // Only swap if position changed
-    if (draggedIndex !== targetIndex) {
-      const newList = [...reorderMilestones];
-      const [draggedItem] = newList.splice(draggedIndex, 1);
-      newList.splice(targetIndex, 0, draggedItem);
-      setReorderMilestones(newList);
+      if (dragState.startIndex !== dragState.currentIndex) {
+        const newList = [...reorderMilestones];
+        const [movedItem] = newList.splice(dragState.startIndex, 1);
+        newList.splice(dragState.currentIndex, 0, movedItem);
+        setReorderMilestones(newList);
+      }
+
+      setDragState({
+        activeId: null,
+        initialY: 0,
+        currentY: 0,
+        startIndex: -1,
+        currentIndex: -1,
+        itemHeight: 0
+      });
+
+      document.body.style.userSelect = '';
+    };
+
+    if (dragState.activeId) {
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove as any, { passive: false });
+      window.addEventListener('touchend', handleEnd);
     }
-  };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    // Order is already updated in handleDragOver
-    setDraggedId(null);
-  };
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove as any);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [dragState, reorderMilestones]);
 
   const handleSaveReorder = async () => {
     try {
@@ -633,32 +680,50 @@ const MilestoneTracker: React.FC = () => {
               {reorderMilestones.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">No incomplete milestones to reorder</p>
               ) : (
-                reorderMilestones.map((milestone, index) => (
-                  <div
-                    key={milestone.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, milestone.id)}
-                    onDragOver={(e) => handleDragOver(e, milestone.id)}
-                    onDrop={(e) => handleDrop(e)}
-                    onDragEnd={() => setDraggedId(null)}
-                    className={`p-4 rounded-lg border-2 transition-all select-none ${
-                      draggedId === milestone.id
-                        ? 'bg-blue-600/20 border-blue-500 opacity-50'
-                        : 'bg-[#0d1117] border-gray-700 hover:border-blue-500'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold pointer-events-none">
-                        {index + 1}
+                reorderMilestones.map((milestone, index) => {
+                  const isDragging = dragState.activeId === milestone.id;
+                  const dragOffset = dragState.currentY - dragState.initialY;
+
+                  let translateY = 0;
+                  if (!isDragging && dragState.activeId) {
+                    if (index > dragState.startIndex && index <= dragState.currentIndex) {
+                      translateY = -(dragState.itemHeight + 8);
+                    } else if (index < dragState.startIndex && index >= dragState.currentIndex) {
+                      translateY = dragState.itemHeight + 8;
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={milestone.id}
+                      className={`milestone-item flex items-center p-4 rounded-lg border-2 transition-all select-none ${
+                        isDragging
+                          ? 'z-50 border-blue-500 bg-blue-600/10 shadow-2xl ring-2 ring-blue-500/30'
+                          : 'z-10 border-gray-700 bg-[#0d1117] hover:border-blue-500'
+                      }`}
+                      style={{
+                        transform: isDragging
+                          ? `translateY(${dragOffset}px)`
+                          : `translateY(${translateY}px)`,
+                        transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+                      }}
+                    >
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold pointer-events-none">
+                          {index + 1}
+                        </div>
+                        <div className="flex-grow min-w-0 pointer-events-none">
+                          <h4 className={`font-semibold text-sm ${isDragging ? 'text-blue-400' : 'text-white'}`}>
+                            {milestone.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {milestone.description?.substring(0, 50)}
+                            {milestone.description && milestone.description.length > 50 ? '...' : ''}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-grow min-w-0 pointer-events-none">
-                        <h4 className="font-semibold text-white text-sm">{milestone.title}</h4>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {milestone.description?.substring(0, 50)}
-                          {milestone.description && milestone.description.length > 50 ? '...' : ''}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 flex items-center gap-2">
+
+                      <div className="flex-shrink-0 flex items-center gap-2 ml-2">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white pointer-events-none ${
                           milestone.type === 'feature' ? 'bg-blue-600' :
                           milestone.type === 'release' ? 'bg-purple-600' :
@@ -667,13 +732,18 @@ const MilestoneTracker: React.FC = () => {
                         }`}>
                           {milestone.type}
                         </span>
-                        <div className="p-1.5 text-gray-400 hover:text-blue-400 cursor-grab active:cursor-grabbing transition-colors flex-shrink-0">
+                        <div
+                          onMouseDown={(e) => handleDragStart(e, milestone.id, index)}
+                          onTouchStart={(e) => handleDragStart(e, milestone.id, index)}
+                          className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 cursor-ns-resize rounded-lg transition-colors flex-shrink-0 touch-none"
+                          title="Drag to reorder (vertical only)"
+                        >
                           <GripVertical size={16} />
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
