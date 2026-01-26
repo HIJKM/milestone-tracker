@@ -34,7 +34,7 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
     <div className="relative flex items-start group mb-8 sm:mb-12">
       {/* Git Graph Line */}
       {!isLast && (
-        <div className={`absolute left-[11px] top-8 w-[2px] h-full ${milestone.completed ? 'bg-green-500/50' : 'bg-gray-700'} group-hover:bg-blue-400 transition-colors hidden sm:block`}></div>
+        <div className={`absolute left-[11px] top-8 w-[2px] h-full ${milestone.completed ? 'bg-green-500/50' : 'bg-gray-700'} group-hover:bg-blue-400 transition-colors`}></div>
       )}
 
       {/* Node Bullet */}
