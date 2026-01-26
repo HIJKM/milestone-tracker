@@ -10,6 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+// Trust proxy - for OAuth callback URLs behind reverse proxy (Railway)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(
