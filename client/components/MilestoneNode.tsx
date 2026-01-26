@@ -81,7 +81,7 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
         {/* Mobile Layout */}
         <div className="sm:hidden space-y-2 w-full">
           {/* Type & Locked Column */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-row gap-1">
             <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white w-fit ${typeColor}`}>
               {milestone.type}
             </span>
@@ -94,7 +94,7 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
           </div>
 
           {/* Title */}
-          <h3 className={`text-sm font-semibold break-words word-break ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-300'}`}>
+          <h3 className={`text-lg font-semibold break-words word-break ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-300'}`}>
             {milestone.title}
           </h3>
 
