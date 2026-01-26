@@ -821,53 +821,58 @@ const MilestoneTracker: React.FC = () => {
 
       {/* Mobile Floating Action Button */}
       <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3">
-        {/* Profile Button - Top */}
-        {user && (
-          <button
-            onClick={() => setConfirmLogout(true)}
-            className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 transition-transform active:scale-95 hover:shadow-red-800 border-2 border-red-500/30 hover:border-red-500/60"
-            title={`Logout - ${user.name || user.email}`}
-          >
-            {user.image ? (
-              <img src={user.image} alt={user.name || ''} className="w-14 h-14 rounded-full object-cover" />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center text-white text-lg font-bold">
-                {user.name?.[0]?.toUpperCase() || user.email[0]?.toUpperCase()}
-              </div>
-            )}
-          </button>
-        )}
+        {/* Profile Button + Progress Pill Container */}
+        <div className="relative w-14 h-28">
+          {/* Profile Button - Top aligned */}
+          {user && (
+            <button
+              onClick={() => setConfirmLogout(true)}
+              className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 transition-transform active:scale-95 hover:shadow-red-800 border-2 border-red-500/30 hover:border-red-500/60 z-20"
+              title={`Logout - ${user.name || user.email}`}
+            >
+              {user.image ? (
+                <img src={user.image} alt={user.name || ''} className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
+                  {user.name?.[0]?.toUpperCase() || user.email[0]?.toUpperCase()}
+                </div>
+              )}
+            </button>
+          )}
 
-        {/* Progress Circle */}
-        <div className="w-14 h-14 rounded-full bg-[#0d1117]/80 backdrop-blur-md border border-gray-700 flex items-center justify-center shadow-xl relative">
-          <svg className="w-14 h-14 transform -rotate-90 absolute" viewBox="0 0 56 56">
-            {/* Background circle */}
-            <circle
-              cx="28"
-              cy="28"
-              r="24"
+          {/* Progress Pill - Elongated (wrapping profile) */}
+          <svg className="w-14 h-28 absolute top-0 left-0" viewBox="-1 -1 58 114" preserveAspectRatio="xMidYMid meet">
+            {/* Background pill shape */}
+            <path
+              d="M 28 0 A 28 28 0 0 1 56 28 L 56 84 A 28 28 0 0 1 0 84 L 0 28 A 28 28 0 0 1 28 0 Z"
               fill="none"
               stroke="#374151"
               strokeWidth="2"
             />
 
-            {/* Progress circle */}
-            <circle
-              cx="28"
-              cy="28"
-              r="24"
+            {/* Progress pill shape */}
+            <defs>
+              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#22c55e" />
+                <stop offset="100%" stopColor="#16a34a" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 28 0 A 28 28 0 0 1 56 28 L 56 84 A 28 28 0 0 1 0 84 L 0 28 A 28 28 0 0 1 28 0 Z"
               fill="none"
-              stroke="#22c55e"
+              stroke="url(#progressGradient)"
               strokeWidth="2"
-              strokeDasharray={2 * Math.PI * 24}
-              strokeDashoffset={2 * Math.PI * 24 * (1 - progressPercent / 100)}
               strokeLinecap="round"
+              strokeDasharray={2 * (28 + 56 + 28 + 48)}
+              strokeDashoffset={2 * (28 + 56 + 28 + 48) * (1 - progressPercent / 100)}
               style={{
                 transition: 'stroke-dashoffset 0.3s ease-in-out',
               }}
             />
           </svg>
-          <span className="text-[10px] font-bold text-green-400 relative z-10">
+
+          {/* Percentage text - positioned independently */}
+          <span className="absolute top-[4.5rem] left-1/2 -translate-x-1/2 text-[10px] font-bold text-green-400 z-10">
             {String(progressPercent).padStart(2, '0')}%
           </span>
         </div>
