@@ -28,6 +28,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     fetchUser();
+
+    // Safari ITP workaround: refetch user when page becomes visible
+    // This handles OAuth callback scenarios where cookies may not be immediately available
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUser();
+      }
+    };
+
+    const handleFocus = () => {
+      fetchUser();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const login = (provider: 'google' | 'github') => {
