@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
 import passport from '../config/passport.js';
 import { PrismaClient } from '@prisma/client';
-import { generateToken } from '../utils/jwt.js';
+import { generateTokens, verifyRefreshToken } from '../utils/jwt.js';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-const DEV_MODE = process.env.DEV_MODE === 'true';
+const DEV_MODE = process.env.NODE_ENV !== 'production' && process.env.DEV_MODE === 'true';
 
 // Dev mode auto-login (no OAuth required)
 if (DEV_MODE) {
@@ -29,10 +29,19 @@ if (DEV_MODE) {
         });
       }
 
-      // Generate JWT token
-      const token = generateToken(user);
-      // Redirect with token in URL
-      res.redirect(`${CLIENT_URL}?token=${token}`);
+      // Generate both tokens
+      const { accessToken, refreshToken } = generateTokens(user);
+
+      // Save refresh token to httpOnly cookie
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      // Redirect with short-lived access token in URL (15분)
+      res.redirect(`${CLIENT_URL}?token=${accessToken}`);
     } catch (error) {
       console.error('Dev login error:', error);
       res.status(500).json({ error: 'Dev login failed' });
@@ -56,8 +65,20 @@ router.get(
     if (!req.user) {
       return res.redirect(`${CLIENT_URL}/login?error=no_user`);
     }
-    const token = generateToken(req.user as any);
-    res.redirect(`${CLIENT_URL}?token=${token}`);
+
+    // Generate both tokens
+    const { accessToken, refreshToken } = generateTokens(req.user as any);
+
+    // Save refresh token to httpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Redirect with short-lived access token in URL (15분)
+    res.redirect(`${CLIENT_URL}?token=${accessToken}`);
   }
 );
 
@@ -77,8 +98,20 @@ router.get(
     if (!req.user) {
       return res.redirect(`${CLIENT_URL}/login?error=no_user`);
     }
-    const token = generateToken(req.user as any);
-    res.redirect(`${CLIENT_URL}?token=${token}`);
+
+    // Generate both tokens
+    const { accessToken, refreshToken } = generateTokens(req.user as any);
+
+    // Save refresh token to httpOnly cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Redirect with short-lived access token in URL (15분)
+    res.redirect(`${CLIENT_URL}?token=${accessToken}`);
   }
 );
 
@@ -111,9 +144,45 @@ router.get('/me', async (req: Request, res: Response) => {
   }
 });
 
+// Refresh access token using refresh token from cookie
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'No refresh token' });
+    }
+
+    // Verify refresh token
+    const payload = verifyRefreshToken(refreshToken);
+    if (!payload) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+
+    // Fetch user
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Generate new access token
+    const { accessToken } = generateTokens(user);
+
+    // Return new access token
+    res.json({ accessToken });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(401).json({ error: 'Failed to refresh token' });
+  }
+});
+
 // Logout (JWT doesn't require backend logout, just client-side token deletion)
 router.post('/logout', (req: Request, res: Response) => {
-  // With JWT, logout is handled client-side by deleting the token
+  // Clear refresh token cookie
+  res.clearCookie('refreshToken');
   res.json({ success: true });
 });
 

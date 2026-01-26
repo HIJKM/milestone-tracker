@@ -9,6 +9,11 @@ import milestoneRoutes from './routes/milestones.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const SESSION_SECRET = process.env.SESSION_SECRET;
+
+if (!SESSION_SECRET) {
+  throw new Error('❌ SESSION_SECRET environment variable is not set. This is required for security.');
+}
 
 // Trust proxy - for OAuth callback URLs behind reverse proxy (Railway)
 app.set('trust proxy', 1);
@@ -25,7 +30,7 @@ app.use(
 // Session configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {

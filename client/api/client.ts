@@ -1,9 +1,33 @@
-import { getAuthHeader } from '../utils/tokenStorage';
+import { getAuthHeader, getToken, saveToken } from '../utils/tokenStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface RequestOptions extends RequestInit {
   body?: any;
+}
+
+/**
+ * 토큰 갱신 (Refresh Token 사용)
+ * Refresh Token은 httpOnly 쿠키에 있으므로 자동 전송됨
+ */
+async function refreshAccessToken(): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include', // Refresh Token 쿠키 자동 포함
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const { accessToken } = await response.json();
+    saveToken(accessToken); // 새 토큰 저장
+    return accessToken;
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    return null;
+  }
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -23,7 +47,21 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+  let response = await fetch(`${API_URL}${endpoint}`, config);
+
+  // ✅ Access Token 만료 시 자동 갱신
+  if (response.status === 401 && getToken()) {
+    const newToken = await refreshAccessToken();
+
+    if (newToken) {
+      // 새 토큰으로 요청 재시도
+      config.headers = {
+        ...config.headers,
+        ...getAuthHeader(), // 새 토큰 포함
+      };
+      response = await fetch(`${API_URL}${endpoint}`, config);
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));

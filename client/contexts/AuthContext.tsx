@@ -33,9 +33,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const tokenFromURL = params.get('token');
 
     if (tokenFromURL) {
-      // Save token to localStorage
+      // Save token to memory + sessionStorage (XSS 보안)
       saveToken(tokenFromURL);
-      // Remove token from URL to keep it clean
+      // URL에서 토큰 제거 (히스토리 보안)
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 

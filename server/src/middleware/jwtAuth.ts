@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt.js';
+import { verifyAccessToken, AccessTokenPayload } from '../utils/jwt.js';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -20,7 +20,7 @@ export const jwtAuth = async (
       return;
     }
 
-    const payload = verifyToken(token);
+    const payload = verifyAccessToken(token);
     if (!payload) {
       res.status(401).json({ error: 'Invalid or expired token' });
       return;
