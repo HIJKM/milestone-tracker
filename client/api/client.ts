@@ -1,4 +1,4 @@
-import { getAuthHeader, getToken, saveToken } from '../utils/tokenStorage';
+import { getAuthHeader, getToken, saveToken, getRefreshTokenBackup, clearAllTokens } from '../utils/tokenStorage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -18,6 +18,10 @@ async function refreshAccessToken(): Promise<string | null> {
     });
 
     if (!response.ok) {
+      // 401이면 Refresh Token도 만료됨
+      if (response.status === 401) {
+        clearAllTokens();
+      }
       return null;
     }
 
@@ -27,6 +31,26 @@ async function refreshAccessToken(): Promise<string | null> {
   } catch (error) {
     console.error('Token refresh failed:', error);
     return null;
+  }
+}
+
+/**
+ * 앱 시작 시 호출: Refresh Token으로 새 Access Token 받기
+ * PWA 재시작 후 자동 로그인 복구용
+ */
+export async function initializeAuth(): Promise<boolean> {
+  try {
+    // localStorage에 Refresh Token 백업 여부 확인
+    if (!getRefreshTokenBackup()) {
+      return false; // 이전 로그인 정보 없음
+    }
+
+    // Refresh Token으로 새 Access Token 받기
+    const newToken = await refreshAccessToken();
+    return !!newToken;
+  } catch (error) {
+    console.error('Auth initialization failed:', error);
+    return false;
   }
 }
 
