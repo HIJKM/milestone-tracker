@@ -13,7 +13,8 @@ import {
   LogOut,
   Loader2,
   Trash2,
-  ArrowUpDown
+  ArrowUpDown,
+  GripVertical
 } from 'lucide-react';
 
 const MilestoneTracker: React.FC = () => {
@@ -117,25 +118,34 @@ const MilestoneTracker: React.FC = () => {
     setIsReordering(true);
   };
 
-  const handleDragStart = (id: string) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     setDraggedId(id);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
     e.preventDefault();
-  };
+    e.dataTransfer.dropEffect = 'move';
 
-  const handleDrop = (targetId: string) => {
     if (!draggedId || draggedId === targetId) return;
 
     const draggedIndex = reorderMilestones.findIndex(m => m.id === draggedId);
     const targetIndex = reorderMilestones.findIndex(m => m.id === targetId);
 
-    const newList = [...reorderMilestones];
-    const [draggedItem] = newList.splice(draggedIndex, 1);
-    newList.splice(targetIndex, 0, draggedItem);
+    if (draggedIndex === -1 || targetIndex === -1) return;
 
-    setReorderMilestones(newList);
+    // Only swap if position changed
+    if (draggedIndex !== targetIndex) {
+      const newList = [...reorderMilestones];
+      const [draggedItem] = newList.splice(draggedIndex, 1);
+      newList.splice(targetIndex, 0, draggedItem);
+      setReorderMilestones(newList);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Order is already updated in handleDragOver
     setDraggedId(null);
   };
 
@@ -627,28 +637,29 @@ const MilestoneTracker: React.FC = () => {
                   <div
                     key={milestone.id}
                     draggable
-                    onDragStart={() => handleDragStart(milestone.id)}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(milestone.id)}
-                    className={`p-4 rounded-lg border-2 cursor-move transition-all ${
+                    onDragStart={(e) => handleDragStart(e, milestone.id)}
+                    onDragOver={(e) => handleDragOver(e, milestone.id)}
+                    onDrop={(e) => handleDrop(e)}
+                    onDragEnd={() => setDraggedId(null)}
+                    className={`p-4 rounded-lg border-2 transition-all select-none ${
                       draggedId === milestone.id
                         ? 'bg-blue-600/20 border-blue-500 opacity-50'
                         : 'bg-[#0d1117] border-gray-700 hover:border-blue-500'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold pointer-events-none">
                         {index + 1}
                       </div>
-                      <div className="flex-grow min-w-0">
+                      <div className="flex-grow min-w-0 pointer-events-none">
                         <h4 className="font-semibold text-white text-sm">{milestone.title}</h4>
                         <p className="text-xs text-gray-500 mt-1">
                           {milestone.description?.substring(0, 50)}
                           {milestone.description && milestone.description.length > 50 ? '...' : ''}
                         </p>
                       </div>
-                      <div className="flex-shrink-0">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white ${
+                      <div className="flex-shrink-0 flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white pointer-events-none ${
                           milestone.type === 'feature' ? 'bg-blue-600' :
                           milestone.type === 'release' ? 'bg-purple-600' :
                           milestone.type === 'fix' ? 'bg-red-600' :
@@ -656,6 +667,9 @@ const MilestoneTracker: React.FC = () => {
                         }`}>
                           {milestone.type}
                         </span>
+                        <div className="p-1.5 text-gray-400 hover:text-blue-400 cursor-grab active:cursor-grabbing transition-colors flex-shrink-0">
+                          <GripVertical size={16} />
+                        </div>
                       </div>
                     </div>
                   </div>
