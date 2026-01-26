@@ -31,14 +31,14 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
   const isLocked = !milestone.completed && !canComplete;
 
   return (
-    <div className="relative flex items-start group mb-12">
+    <div className="relative flex items-start group mb-8 sm:mb-12">
       {/* Git Graph Line */}
       {!isLast && (
-        <div className={`absolute left-[11px] top-8 w-[2px] h-full ${milestone.completed ? 'bg-green-500/50' : 'bg-gray-700'} group-hover:bg-blue-400 transition-colors`}></div>
+        <div className={`absolute left-[11px] top-8 w-[2px] h-full ${milestone.completed ? 'bg-green-500/50' : 'bg-gray-700'} group-hover:bg-blue-400 transition-colors hidden sm:block`}></div>
       )}
 
       {/* Node Bullet */}
-      <div className="relative z-10 mr-8 flex-shrink-0 pt-1">
+      <div className="relative z-10 mr-3 sm:mr-8 flex-shrink-0 pt-1">
         <button
           onClick={handleToggleClick}
           disabled={milestone.completed || isLocked}
@@ -70,7 +70,7 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
       {/* Content Card */}
       <div
         onClick={() => onSelect(milestone)}
-        className={`flex-grow p-5 rounded-xl border transition-all duration-300 cursor-pointer ${
+        className={`flex-grow p-3 sm:p-5 rounded-xl border transition-all duration-300 cursor-pointer min-w-0 max-w-full ${
           milestone.completed
             ? 'bg-[#161b22] border-green-500/30'
             : isLocked
@@ -78,43 +78,93 @@ export const MilestoneNode: React.FC<MilestoneNodeProps> = ({
               : 'bg-[#161b22] border-gray-800 hover:border-blue-500/50 hover:bg-[#1c2128]'
         }`}
       >
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white ${typeColor}`}>
+        {/* Mobile Layout */}
+        <div className="sm:hidden space-y-2 w-full">
+          {/* Type & Locked Column */}
+          <div className="flex flex-col gap-1">
+            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white w-fit ${typeColor}`}>
               {milestone.type}
             </span>
             {isLocked && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-800 flex items-center gap-1">
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-gray-500 bg-gray-800 flex items-center gap-1 w-fit">
                 <Lock size={8} />
                 Locked
               </span>
             )}
-            <h3 className={`text-lg font-semibold ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-400'}`}>
-              {milestone.title}
-            </h3>
           </div>
-          <div className="flex items-center text-xs text-gray-500">
-            <Clock size={12} className="mr-1" />
+
+          {/* Title */}
+          <h3 className={`text-sm font-semibold break-words word-break ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-300'}`}>
+            {milestone.title}
+          </h3>
+
+          {/* Date */}
+          <div className="flex items-center text-[10px] text-gray-500">
+            <Clock size={10} className="mr-1" />
             {milestone.date}
           </div>
+
+          {/* Description */}
+          <p className={`text-xs line-clamp-2 ${isLocked ? 'text-gray-600' : 'text-gray-400'}`}>
+            {milestone.description}
+          </p>
+
+          {/* Tags */}
+          {milestone.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {milestone.tags.slice(0, 2).map(tag => (
+                <span key={tag} className="flex items-center text-[8px] px-1.5 py-0.5 bg-[#21262d] text-gray-400 rounded-full border border-gray-700">
+                  <Tag size={8} className="mr-0.5" />
+                  {tag}
+                </span>
+              ))}
+              {milestone.tags.length > 2 && (
+                <span className="text-[8px] px-1.5 py-0.5 text-gray-500">+{milestone.tags.length - 2}</span>
+              )}
+            </div>
+          )}
         </div>
 
-        <p className={`text-sm mb-4 line-clamp-2 ${isLocked ? 'text-gray-600' : 'text-gray-400'}`}>
-          {milestone.description}
-        </p>
+        {/* Desktop Layout */}
+        <div className="hidden sm:block space-y-4">
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white flex-shrink-0 ${typeColor}`}>
+                {milestone.type}
+              </span>
+              {isLocked && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-800 flex items-center gap-1 flex-shrink-0">
+                  <Lock size={8} />
+                  Locked
+                </span>
+              )}
+              <h3 className={`text-lg font-semibold ${milestone.completed ? 'text-gray-100' : isLocked ? 'text-gray-500' : 'text-gray-400'}`}>
+                {milestone.title}
+              </h3>
+            </div>
+            <div className="flex items-center text-xs text-gray-500 flex-shrink-0 ml-2">
+              <Clock size={12} className="mr-1" />
+              {milestone.date}
+            </div>
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          {milestone.tags.map(tag => (
-            <span key={tag} className="flex items-center text-[10px] px-2 py-0.5 bg-[#21262d] text-gray-400 rounded-full border border-gray-700">
-              <Tag size={10} className="mr-1" />
-              {tag}
-            </span>
-          ))}
+          <p className={`text-sm mb-4 line-clamp-2 ${isLocked ? 'text-gray-600' : 'text-gray-400'}`}>
+            {milestone.description}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {milestone.tags.map(tag => (
+              <span key={tag} className="flex items-center text-[10px] px-2 py-0.5 bg-[#21262d] text-gray-400 rounded-full border border-gray-700">
+                <Tag size={10} className="mr-1" />
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Hover Detail Indicator */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
         <ChevronRight size={20} className="text-blue-500" />
       </div>
     </div>
