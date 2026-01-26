@@ -12,24 +12,32 @@ interface RequestOptions extends RequestInit {
  */
 async function refreshAccessToken(): Promise<string | null> {
   try {
+    console.log('[refreshAccessToken] Calling /auth/refresh endpoint...');
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include', // Refresh Token 쿠키 자동 포함
     });
 
+    console.log('[refreshAccessToken] Response status:', response.status);
+
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[refreshAccessToken] Server error:', response.status, errorData);
+
       // 401이면 Refresh Token도 만료됨
       if (response.status === 401) {
+        console.log('[refreshAccessToken] Refresh token expired, clearing all tokens');
         clearAllTokens();
       }
       return null;
     }
 
     const { accessToken } = await response.json();
+    console.log('[refreshAccessToken] New access token received');
     saveToken(accessToken); // 새 토큰 저장
     return accessToken;
   } catch (error) {
-    console.error('Token refresh failed:', error);
+    console.error('[refreshAccessToken] Network error:', error);
     return null;
   }
 }
@@ -41,13 +49,20 @@ async function refreshAccessToken(): Promise<string | null> {
 export async function initializeAuth(): Promise<boolean> {
   try {
     // localStorage에 Refresh Token 백업 여부 확인
-    if (!getRefreshTokenBackup()) {
+    const hasBackup = getRefreshTokenBackup();
+    console.log('[initializeAuth] Refresh token backup exists:', hasBackup);
+
+    if (!hasBackup) {
+      console.log('[initializeAuth] No previous login info found');
       return false; // 이전 로그인 정보 없음
     }
 
+    console.log('[initializeAuth] Attempting to refresh access token...');
     // Refresh Token으로 새 Access Token 받기
     const newToken = await refreshAccessToken();
-    return !!newToken;
+    const success = !!newToken;
+    console.log('[initializeAuth] Token refresh result:', success);
+    return success;
   } catch (error) {
     console.error('Auth initialization failed:', error);
     return false;

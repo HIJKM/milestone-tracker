@@ -35,6 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const tokenFromURL = params.get('token');
 
         if (tokenFromURL) {
+          console.log('[AuthContext] OAuth callback detected, saving token');
           // Save token to memory + sessionStorage (XSS 보안)
           saveToken(tokenFromURL);
           // Refresh Token 백업 표시 (실제 Refresh Token은 쿠키에 안전하게 저장됨)
@@ -44,18 +45,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await fetchUser();
         } else if (getToken()) {
           // 메모리에 토큰이 있으면 유저 정보 로드
+          console.log('[AuthContext] Token found in memory, fetching user');
           await fetchUser();
         } else {
           // 메모리 없음 → Refresh Token으로 복구 시도 (PWA 재시작 후)
+          console.log('[AuthContext] No token in memory, attempting to restore from refresh token');
           const success = await initializeAuth();
           if (success) {
+            console.log('[AuthContext] Successfully restored session from refresh token');
             await fetchUser();
           } else {
+            console.log('[AuthContext] Failed to restore session, user logged out');
             setLoading(false);
           }
         }
       } catch (error) {
-        console.error('App initialization error:', error);
+        console.error('[AuthContext] App initialization error:', error);
         setLoading(false);
       }
     };
