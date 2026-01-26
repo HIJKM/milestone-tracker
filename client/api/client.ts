@@ -1,6 +1,6 @@
-// Use relative paths in production (Vercel rewrites to Railway backend)
-// This treats the API as first-party, fixing Safari cookie issues
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '');
+import { getAuthHeader } from '../utils/tokenStorage';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface RequestOptions extends RequestInit {
   body?: any;
@@ -14,6 +14,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
       ...customOptions.headers,
     },
   };

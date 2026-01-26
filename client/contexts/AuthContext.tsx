@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi, User } from '../api/client';
+import { saveToken, getToken, removeToken } from '../utils/tokenStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -27,27 +28,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    fetchUser();
+    // Check for token in URL query parameters (from OAuth callback)
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromURL = params.get('token');
 
-    // Safari ITP workaround: refetch user when page becomes visible
-    // This handles OAuth callback scenarios where cookies may not be immediately available
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchUser();
-      }
-    };
+    if (tokenFromURL) {
+      // Save token to localStorage
+      saveToken(tokenFromURL);
+      // Remove token from URL to keep it clean
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
-    const handleFocus = () => {
+    // Fetch user if token exists
+    if (getToken()) {
       fetchUser();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const login = (provider: 'google' | 'github') => {
@@ -61,9 +58,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     try {
       await authApi.logout();
+      removeToken();
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
+      // Still remove token even if logout call fails
+      removeToken();
+      setUser(null);
     }
   };
 

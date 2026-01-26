@@ -1,12 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { isAuthenticated } from '../middleware/auth.js';
+import { jwtAuth } from '../middleware/jwtAuth.js';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Get all milestones for the current user
-router.get('/', isAuthenticated, async (req: Request, res: Response) => {
+router.get('/', jwtAuth, async (req: Request, res: Response) => {
   try {
     const milestones = await prisma.milestone.findMany({
       where: { userId: req.user!.id },
@@ -19,7 +19,7 @@ router.get('/', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // Create a new milestone
-router.post('/', isAuthenticated, async (req: Request, res: Response) => {
+router.post('/', jwtAuth, async (req: Request, res: Response) => {
   try {
     const { title, description, type, tags } = req.body;
 
@@ -47,7 +47,7 @@ router.post('/', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // Update a milestone
-router.patch('/:id', isAuthenticated, async (req: Request, res: Response) => {
+router.patch('/:id', jwtAuth, async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { title, description, type, tags, completed } = req.body;
@@ -102,7 +102,7 @@ router.patch('/:id', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // Delete a milestone
-router.delete('/:id', isAuthenticated, async (req: Request, res: Response) => {
+router.delete('/:id', jwtAuth, async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
@@ -125,7 +125,7 @@ router.delete('/:id', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // Reorder milestones
-router.post('/reorder', isAuthenticated, async (req: Request, res: Response) => {
+router.post('/reorder', jwtAuth, async (req: Request, res: Response) => {
   try {
     const { orderedIds } = req.body as { orderedIds: string[] };
 
