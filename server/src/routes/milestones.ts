@@ -129,12 +129,35 @@ router.post('/reorder', jwtAuth, async (req: Request, res: Response) => {
   try {
     const { orderedIds } = req.body as { orderedIds: string[] };
 
-    // Update order for each milestone
+    // Get all milestones for the user
+    const allMilestones = await prisma.milestone.findMany({
+      where: { userId: req.user!.id },
+      orderBy: { order: 'asc' },
+    });
+
+    // Separate completed milestones (incomplete ones will be reordered)
+    const completedMilestones = allMilestones.filter(m => m.completed);
+
+    // Build new order: completed milestones stay first, then reordered incomplete ones
+    let currentOrder = 0;
+    const updates: { id: string; order: number }[] = [];
+
+    // Assign orders to completed milestones (preserve their current order)
+    for (const milestone of completedMilestones) {
+      updates.push({ id: milestone.id, order: currentOrder++ });
+    }
+
+    // Assign new orders to incomplete milestones based on reorder input
+    for (const id of orderedIds) {
+      updates.push({ id, order: currentOrder++ });
+    }
+
+    // Apply all updates
     await Promise.all(
-      orderedIds.map((id, index) =>
-        prisma.milestone.updateMany({
-          where: { id, userId: req.user!.id },
-          data: { order: index },
+      updates.map(update =>
+        prisma.milestone.update({
+          where: { id: update.id },
+          data: { order: update.order },
         })
       )
     );

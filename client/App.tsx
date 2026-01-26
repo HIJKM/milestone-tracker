@@ -4,7 +4,7 @@ import { MilestoneNode } from './components/MilestoneNode';
 import { LoginPage } from './components/LoginPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useMilestones } from './hooks/useMilestones';
-import { Milestone } from './api/client';
+import { Milestone, milestonesApi } from './api/client';
 import {
   GitBranch,
   Plus,
@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   LogOut,
   Loader2,
-  Trash2
+  Trash2,
+  ArrowUpDown
 } from 'lucide-react';
 
 const MilestoneTracker: React.FC = () => {
@@ -24,12 +25,16 @@ const MilestoneTracker: React.FC = () => {
     completeMilestone,
     deleteMilestone,
     canCompleteMilestone,
+    refetch,
   } = useMilestones();
 
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState<Milestone | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Milestone | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
+  const [reorderMilestones, setReorderMilestones] = useState<Milestone[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   // New milestone form state
   const [newMilestone, setNewMilestone] = useState({
@@ -103,6 +108,47 @@ const MilestoneTracker: React.FC = () => {
     }
 
     setConfirmDelete(null);
+  };
+
+  const handleOpenReorder = () => {
+    // Filter only incomplete milestones
+    const incomplete = milestones.filter(m => !m.completed);
+    setReorderMilestones(incomplete);
+    setIsReordering(true);
+  };
+
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetId: string) => {
+    if (!draggedId || draggedId === targetId) return;
+
+    const draggedIndex = reorderMilestones.findIndex(m => m.id === draggedId);
+    const targetIndex = reorderMilestones.findIndex(m => m.id === targetId);
+
+    const newList = [...reorderMilestones];
+    const [draggedItem] = newList.splice(draggedIndex, 1);
+    newList.splice(targetIndex, 0, draggedItem);
+
+    setReorderMilestones(newList);
+    setDraggedId(null);
+  };
+
+  const handleSaveReorder = async () => {
+    try {
+      const orderedIds = reorderMilestones.map(m => m.id);
+      await milestonesApi.reorder(orderedIds);
+      setIsReordering(false);
+      // Refetch milestones to update the UI with new order
+      await refetch();
+    } catch (error) {
+      console.error('Failed to reorder milestones:', error);
+    }
   };
 
   const handleAddMilestone = async () => {
@@ -207,6 +253,17 @@ const MilestoneTracker: React.FC = () => {
               <span className="text-lg font-bold text-blue-400">{milestones.length - completedCount}</span>
             </div>
           </div>
+
+          {/* Reorder Button */}
+          {milestones.some(m => !m.completed) && (
+            <button
+              onClick={handleOpenReorder}
+              className="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-gray-900/30 mb-3"
+            >
+              <ArrowUpDown size={18} />
+              Reorder
+            </button>
+          )}
 
           {/* Add Button */}
           <button
@@ -542,6 +599,83 @@ const MilestoneTracker: React.FC = () => {
                 className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-500 transition-all shadow-lg shadow-red-900/20"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reorder Modal */}
+      {isReordering && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#161b22] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <ArrowUpDown size={20} />
+                Reorder Milestones
+              </h2>
+              <button onClick={() => setIsReordering(false)} className="p-1 hover:bg-gray-800 rounded">
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            <div className="flex-grow overflow-y-auto p-6 space-y-2">
+              {reorderMilestones.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No incomplete milestones to reorder</p>
+              ) : (
+                reorderMilestones.map((milestone, index) => (
+                  <div
+                    key={milestone.id}
+                    draggable
+                    onDragStart={() => handleDragStart(milestone.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(milestone.id)}
+                    className={`p-4 rounded-lg border-2 cursor-move transition-all ${
+                      draggedId === milestone.id
+                        ? 'bg-blue-600/20 border-blue-500 opacity-50'
+                        : 'bg-[#0d1117] border-gray-700 hover:border-blue-500'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <h4 className="font-semibold text-white text-sm">{milestone.title}</h4>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {milestone.description?.substring(0, 50)}
+                          {milestone.description && milestone.description.length > 50 ? '...' : ''}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white ${
+                          milestone.type === 'feature' ? 'bg-blue-600' :
+                          milestone.type === 'release' ? 'bg-purple-600' :
+                          milestone.type === 'fix' ? 'bg-red-600' :
+                          'bg-gray-600'
+                        }`}>
+                          {milestone.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-6 bg-[#0d1117] border-t border-gray-800 flex gap-3">
+              <button
+                onClick={() => setIsReordering(false)}
+                className="flex-1 py-3 rounded-xl font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveReorder}
+                disabled={reorderMilestones.length === 0}
+                className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Order
               </button>
             </div>
           </div>
