@@ -29,13 +29,10 @@ if (DEV_MODE) {
         });
       }
 
-      // Log in the user
-      req.login(user, (err: Error | null) => {
-        if (err) {
-          return res.status(500).json({ error: 'Login failed' });
-        }
-        res.redirect(CLIENT_URL);
-      });
+      // Generate JWT token
+      const token = generateToken(user);
+      // Redirect with token in URL
+      res.redirect(`${CLIENT_URL}?token=${token}`);
     } catch (error) {
       console.error('Dev login error:', error);
       res.status(500).json({ error: 'Dev login failed' });
