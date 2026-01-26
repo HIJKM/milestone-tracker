@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "https://milestone-tracker-production.up.railway.app/auth/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://milestone-tracker-production.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/((?!\\.).)*",
+      "destination": "/index.html"
+    }
+  ]
+}
