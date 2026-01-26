@@ -11,7 +11,8 @@ import {
   X,
   AlertTriangle,
   LogOut,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 
 const MilestoneTracker: React.FC = () => {
@@ -21,12 +22,14 @@ const MilestoneTracker: React.FC = () => {
     loading,
     createMilestone,
     completeMilestone,
+    deleteMilestone,
     canCompleteMilestone,
   } = useMilestones();
 
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState<Milestone | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Milestone | null>(null);
 
   // New milestone form state
   const [newMilestone, setNewMilestone] = useState({
@@ -84,6 +87,22 @@ const MilestoneTracker: React.FC = () => {
     }
 
     setConfirmComplete(null);
+  };
+
+  const confirmDeleteMilestoneHandler = async () => {
+    if (!confirmDelete) return;
+
+    try {
+      await deleteMilestone(confirmDelete.id);
+      // Close details panel if deleted milestone was selected
+      if (selectedMilestone?.id === confirmDelete.id) {
+        setSelectedMilestone(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete milestone:', error);
+    }
+
+    setConfirmDelete(null);
   };
 
   const handleAddMilestone = async () => {
@@ -331,7 +350,15 @@ const MilestoneTracker: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6 bg-[#0d1117] border-t border-gray-800">
+              <div className="p-6 bg-[#0d1117] border-t border-gray-800 space-y-3">
+                <button
+                  onClick={() => setConfirmDelete(selectedMilestone)}
+                  className="w-full py-3 rounded-xl font-bold transition-all bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-600/30 hover:border-red-600/50 flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  Delete Milestone
+                </button>
+
                 {selectedMilestone.completed ? (
                   <div className="w-full py-3 rounded-xl font-bold bg-green-600/20 text-green-400 text-center border border-green-600/30">
                     ✓ Milestone Completed
@@ -439,7 +466,7 @@ const MilestoneTracker: React.FC = () => {
         </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Complete */}
       {confirmComplete && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[#161b22] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
@@ -474,6 +501,47 @@ const MilestoneTracker: React.FC = () => {
                 className="flex-1 py-3 rounded-xl font-bold bg-green-600 text-white hover:bg-green-500 transition-all shadow-lg shadow-green-900/20"
               >
                 Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal - Delete */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#161b22] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-6 border-b border-gray-800 flex items-center gap-3">
+              <div className="p-2 bg-red-600/20 text-red-400 rounded-lg">
+                <AlertTriangle size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-white">Confirm Deletion</h2>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-400 mb-2">
+                Are you sure you want to delete this milestone?
+              </p>
+              <p className="text-lg font-semibold text-white mb-4">
+                "{confirmDelete.title}"
+              </p>
+              <p className="text-sm text-red-400/80 bg-red-400/10 px-4 py-3 rounded-lg border border-red-400/20">
+                ⚠️ This action cannot be undone. The milestone and all its data will be permanently deleted.
+              </p>
+            </div>
+
+            <div className="p-6 bg-[#0d1117] border-t border-gray-800 flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-3 rounded-xl font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteMilestoneHandler}
+                className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-500 transition-all shadow-lg shadow-red-900/20"
+              >
+                Delete
               </button>
             </div>
           </div>
