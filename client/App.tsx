@@ -334,11 +334,11 @@ const MilestoneTracker: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-grow flex overflow-hidden">
+      <main className="flex-grow flex overflow-hidden w-full">
         {/* Center - Scrollable Graph Container */}
         <section
           ref={scrollContainerRef}
-          className="flex-grow overflow-y-auto px-4 md:px-12 lg:pl-72 py-12 scroll-smooth"
+          className="flex-grow overflow-y-auto overflow-x-hidden px-4 md:px-12 lg:pl-72 py-12 scroll-smooth"
         >
           <div className="max-w-3xl mx-auto">
             {/* Legend / Info */}
@@ -767,10 +767,57 @@ const MilestoneTracker: React.FC = () => {
       )}
 
       {/* Mobile Floating Action Button */}
-      <div className="lg:hidden fixed bottom-6 right-6 z-40">
+      <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        {/* Progress Circle */}
+        <div className="w-14 h-14 rounded-full bg-[#0d1117]/80 backdrop-blur-md border border-gray-700 flex items-center justify-center shadow-xl relative">
+          <svg className="w-14 h-14 transform -rotate-90 absolute" viewBox="0 0 56 56">
+            {/* Background circle */}
+            <circle
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke="#374151"
+              strokeWidth="2"
+            />
+
+            {/* Progress circle */}
+            <circle
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="2"
+              strokeDasharray={2 * Math.PI * 24}
+              strokeDashoffset={2 * Math.PI * 24 * (1 - progressPercent / 100)}
+              strokeLinecap="round"
+              style={{
+                transition: 'stroke-dashoffset 0.3s ease-in-out',
+              }}
+            />
+          </svg>
+          <span className="text-[10px] font-bold text-green-400 relative z-10">
+            {String(progressPercent).padStart(2, '0')}%
+          </span>
+        </div>
+
+        {/* Reorder Button */}
+        {milestones.some(m => !m.completed) && (
+          <button
+            onClick={handleOpenReorder}
+            className="w-14 h-14 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center shadow-2xl shadow-gray-900 text-white transition-transform active:scale-95"
+            title="Reorder milestones"
+          >
+            <ArrowUpDown size={24} />
+          </button>
+        )}
+
+        {/* Add Button */}
         <button
           onClick={() => setIsAdding(true)}
           className="w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center shadow-2xl shadow-blue-900 text-white transition-transform active:scale-95"
+          title="Add milestone"
         >
           <Plus size={24} />
         </button>
