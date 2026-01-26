@@ -827,7 +827,11 @@ const MilestoneTracker: React.FC = () => {
           {user && (
             <button
               onClick={() => setConfirmLogout(true)}
-              className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 transition-transform active:scale-95 hover:shadow-red-800 border-2 border-red-500/30 hover:border-red-500/60 z-20"
+              className={`absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-95 z-20 ${
+                import.meta.env.MODE === 'production'
+                  ? 'shadow-lg shadow-transparent border-2 border-transparent'
+                  : 'shadow-2xl shadow-red-900/50 hover:shadow-red-800 border-2 border-red-500/30 hover:border-red-500/60'
+              }`}
               title={`Logout - ${user.name || user.email}`}
             >
               {user.image ? (
