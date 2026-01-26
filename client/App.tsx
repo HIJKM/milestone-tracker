@@ -43,6 +43,7 @@ const MilestoneTracker: React.FC = () => {
     currentIndex: -1,
     itemHeight: 0
   });
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   // New milestone form state
   const [newMilestone, setNewMilestone] = useState({
@@ -223,6 +224,15 @@ const MilestoneTracker: React.FC = () => {
       setIsAdding(false);
     } catch (error) {
       console.error('Failed to create milestone:', error);
+    }
+  };
+
+  const handleLogoutConfirm = async () => {
+    try {
+      await logout();
+      setConfirmLogout(false);
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
   };
 
@@ -662,6 +672,49 @@ const MilestoneTracker: React.FC = () => {
         </div>
       )}
 
+      {/* Confirmation Modal - Logout */}
+      {confirmLogout && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#161b22] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="p-6 border-b border-gray-800 flex items-center gap-3">
+              <div className="p-2 bg-red-600/20 text-red-400 rounded-lg">
+                <LogOut size={20} />
+              </div>
+              <h2 className="text-xl font-bold text-white">Confirm Logout</h2>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-400 mb-2">
+                Are you sure you want to logout?
+              </p>
+              {user && (
+                <p className="text-sm text-gray-500 mb-4">
+                  You're logged in as <span className="text-white font-semibold">{user.name || user.email}</span>
+                </p>
+              )}
+              <p className="text-sm text-red-400/80 bg-red-400/10 px-4 py-3 rounded-lg border border-red-400/20">
+                ⚠️ You will need to log in again to access your milestones.
+              </p>
+            </div>
+
+            <div className="p-6 bg-[#0d1117] border-t border-gray-800 flex gap-3">
+              <button
+                onClick={() => setConfirmLogout(false)}
+                className="flex-1 py-3 rounded-xl font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-500 transition-all shadow-lg shadow-red-900/20"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reorder Modal */}
       {isReordering && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -768,6 +821,23 @@ const MilestoneTracker: React.FC = () => {
 
       {/* Mobile Floating Action Button */}
       <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        {/* Profile Button - Top */}
+        {user && (
+          <button
+            onClick={() => setConfirmLogout(true)}
+            className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-red-900/50 transition-transform active:scale-95 hover:shadow-red-800 border-2 border-red-500/30 hover:border-red-500/60"
+            title={`Logout - ${user.name || user.email}`}
+          >
+            {user.image ? (
+              <img src={user.image} alt={user.name || ''} className="w-14 h-14 rounded-full object-cover" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center text-white text-lg font-bold">
+                {user.name?.[0]?.toUpperCase() || user.email[0]?.toUpperCase()}
+              </div>
+            )}
+          </button>
+        )}
+
         {/* Progress Circle */}
         <div className="w-14 h-14 rounded-full bg-[#0d1117]/80 backdrop-blur-md border border-gray-700 flex items-center justify-center shadow-xl relative">
           <svg className="w-14 h-14 transform -rotate-90 absolute" viewBox="0 0 56 56">
