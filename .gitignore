@@ -39,3 +39,5 @@ server/prisma/*.db-journal
 SECURITY_AUDIT.md
 SECURITY_FIXES.md
 SECURITY_SUMMARY.md
+
+.serena/
