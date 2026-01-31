@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import passport from './config/passport.js';
 import authRoutes from './routes/auth.js';
@@ -20,6 +21,7 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
     origin: CLIENT_URL,

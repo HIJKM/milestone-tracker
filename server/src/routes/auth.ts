@@ -35,9 +35,10 @@ if (DEV_MODE) {
       // Save refresh token to httpOnly cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Always true for HTTPS security (Railway uses HTTPS)
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/', // Available to all routes
       });
 
       // Redirect with short-lived access token in URL (15분)
@@ -72,9 +73,10 @@ router.get(
     // Save refresh token to httpOnly cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // Always true for HTTPS security (Railway uses HTTPS)
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/', // Available to all routes
     });
 
     // Redirect with short-lived access token in URL (15분)
@@ -105,9 +107,10 @@ router.get(
     // Save refresh token to httpOnly cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // Always true for HTTPS security (Railway uses HTTPS)
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/', // Available to all routes
     });
 
     // Redirect with short-lived access token in URL (15분)
@@ -181,8 +184,13 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
 // Logout (JWT doesn't require backend logout, just client-side token deletion)
 router.post('/logout', (req: Request, res: Response) => {
-  // Clear refresh token cookie
-  res.clearCookie('refreshToken');
+  // Clear refresh token cookie with matching options
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+  });
   res.json({ success: true });
 });
 

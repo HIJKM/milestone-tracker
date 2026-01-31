@@ -15,6 +15,9 @@ async function refreshAccessToken(): Promise<string | null> {
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include', // Refresh Token 쿠키 자동 포함
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!response.ok) {
