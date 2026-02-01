@@ -8,28 +8,26 @@ import authRoutes from './routes/auth.js';
 import milestoneRoutes from './routes/milestones.js';
 
 const app = express();
+
+// ===== 환경변수 설정 =====
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
 if (!SESSION_SECRET) {
-  throw new Error('❌ SESSION_SECRET environment variable is not set. This is required for security.');
+  throw new Error('SESSION_SECRET environment variable is not set. This is required for security.');
 }
 
-// Trust proxy - for OAuth callback URLs behind reverse proxy (Railway)
 app.set('trust proxy', 1);
-
-// Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
     origin: CLIENT_URL,
-    credentials: true,
+    credentials: true, // ✅ 중요: 쿠키가 포함된 cross-origin 요청 허용
   })
 );
 
-// Session configuration
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -38,21 +36,17 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax', // Safari 호환성을 위해 'lax' 사용
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: 'lax',
     },
   })
 );
-
-// Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Routes
 app.use('/auth', authRoutes);
 app.use('/api/milestones', milestoneRoutes);
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
