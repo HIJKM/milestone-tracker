@@ -51,7 +51,7 @@ import { saveToken, getToken, removeToken } from '../utils/tokenStorage';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  loadingStatus: 'booting' | 'authorizing' | 'login' | 'idle';
+  loadingStatus: 'booting' | 'authorizing' | 'refreshing' | 'idle';
   login: (provider: 'google' | 'github') => void;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ===== 상태 관리 =====
   const [user, setUser] = useState<User | null>(null); // 현재 사용자
   const [loading, setLoading] = useState(true); // 초기화 상태
-  const [loadingStatus, setLoadingStatus] = useState<'booting' | 'authorizing' | 'login' | 'idle'>('booting');
+  const [loadingStatus, setLoadingStatus] = useState<'booting' | 'authorizing' | 'refreshing' | 'idle'>('booting');
 
   /**
    * =====================================
@@ -110,10 +110,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('받은 user:', user);  // ← 실제 값 확인!
       setUser(user);
     } catch (error: any) {
-      // 401 응답: 토큰이 만료되었을 가능성 → authorizing 상태로 변경
+      // 401 응답: 토큰이 만료되었을 가능성 → refreshing 상태로 변경
       if (error.status === 401) {
         console.log('📡 401 응답 받음, 토큰 갱신 시도...');
-        setLoadingStatus('authorizing');
+        setLoadingStatus('refreshing');
 
         // refresh 토큰으로 새 access 토큰 요청
         try {
@@ -204,14 +204,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (tokenFromURL) {
       // ✅ URL에 토큰이 있으면: 메모리 + sessionStorage에 저장
       saveToken(tokenFromURL);
-      setLoadingStatus('login');
 
       // 🔐 보안: URL에서 token 파라미터 제거
       // 브라우저 히스토리에 ?token=xxx가 남지 않도록 처리
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      setLoadingStatus('booting');
     }
+    // 모든 경우 'booting' 상태 유지
 
     /**
      * ===== Step 2: 사용자 정보 로드 =====
@@ -273,6 +271,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 항상 fetchUser() 호출
     // 토큰이 있으면: 그냥 사용
     // 토큰이 없으면: client.ts에서 /auth/refresh로 자동 갱신
+    setLoadingStatus('authorizing');
     fetchUser();
   }, []); // 앱 초기화 시에만 한 번 실행
 
