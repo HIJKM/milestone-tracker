@@ -146,7 +146,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   // ===== 1단계: 첫 번째 요청 =====
   let response = await fetch(`${API_URL}${endpoint}`, config);
-  console.log('fetch excuted');
+  console.log('fetch excuted'); // 실행됨.
   /**
    * ===== 2단계: Access Token 자동 갱신 로직 =====
    *
@@ -176,8 +176,9 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
    * - refreshAccessToken()이 null 반환하면
    * - 재시도하지 않음 → 사용자 재로그인 필요
    */
-  if (response.status === 401) {
+  if (response.status === 401) { // 이거 안 먹고 그냥 넘어가는듯.
     console.warn('⚠️ Access token expired, attempting to refresh...');
+    console.log('401 response 확인');
 
     // ===== 새 Access Token 요청 =====
     const newToken = await refreshAccessToken();
@@ -199,6 +200,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       // 2. Refresh Token이 만료됨 (7일 초과)
       // 3. CORS 이슈
       console.warn('❌ Refresh token failed - user needs to login again');
+      console.log('갱신 실패');
       // 재시도 없이 401 응답 처리로 넘어감
     }
   }

@@ -120,6 +120,7 @@ router.get('/me', async (req: Request, res: Response) => {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
     if (!token) {
+      console.log('토큰 엄슴');
       return res.json({ user: null });
     }
 
