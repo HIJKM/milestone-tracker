@@ -81,9 +81,12 @@ export const useMilestones = () => {
     const oldMilestones = milestones;
 
     // UI 즉시 업데이트 (optimistic)
-    const reorderedMilestones = orderedIds.map(id =>
+    // 완료된 마일스톤은 유지하고, 불완료만 순서 변경
+    const completed = milestones.filter(m => m.completed);
+    const reordered = orderedIds.map(id =>
       milestones.find(m => m.id === id)!
     );
+    const reorderedMilestones = [...reordered, ...completed];
     setMilestones(reorderedMilestones);
 
     // 백그라운드에서 API 호출

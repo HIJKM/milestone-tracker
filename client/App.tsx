@@ -36,6 +36,7 @@ const MilestoneTracker: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<Milestone | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [reorderList, setReorderList] = useState<Milestone[]>([]);
+  const isFirstLoad = useRef(true);
   const [dragState, setDragState] = useState({
     activeId: null as string | null,
     initialY: 0,
@@ -210,6 +211,18 @@ const MilestoneTracker: React.FC = () => {
     }
   };
 
+  const scrollToMilestone = (milestoneId: string) => {
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        const nodes = scrollContainerRef.current.querySelectorAll('.relative.flex.items-start.group');
+        const targetIndex = milestones.findIndex(m => m.id === milestoneId);
+        if (targetIndex !== -1 && nodes[targetIndex]) {
+          nodes[targetIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 100);
+  };
+
   const handleAddMilestone = async () => {
     if (!newMilestone.title.trim()) return;
 
@@ -223,9 +236,11 @@ const MilestoneTracker: React.FC = () => {
       description: newMilestone.description.trim(),
       type: newMilestone.type,
       tags: newMilestone.tags.split(',').map(t => t.trim()).filter(t => t)
+    }).then(newMilestone => {
+      // 새 마일스톤으로 스크롤
+      scrollToMilestone(newMilestone.id);
     }).catch(error => {
       console.error('Failed to create milestone:', error);
-      // 실패시 사용자에게 알림 필요
     });
   };
 
