@@ -9,6 +9,7 @@ import milestoneRoutes from './routes/milestones.js';
 
 const app = express();
 
+// ===== 환경변수 설정 =====
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -23,7 +24,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: CLIENT_URL,
-    credentials: true,
+    credentials: true, // ✅ 중요: 쿠키가 포함된 cross-origin 요청 허용
   })
 );
 

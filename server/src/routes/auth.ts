@@ -40,16 +40,7 @@ if (DEV_MODE) {
         domain: COOKIE_DOMAIN
       });
 
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: 15 * 60 * 1000,
-        path: '/',
-        domain: COOKIE_DOMAIN
-      });
-
-      res.redirect(`${CLIENT_URL}`);
+      res.redirect(`${CLIENT_URL}?token=${accessToken}`);
     } catch (error) {
       console.error('Dev login error:', error);
       res.status(500).json({ error: 'Dev login failed' });
@@ -57,43 +48,39 @@ if (DEV_MODE) {
   });
 }
 
-router.get(
+router.get( // client.ts의 googleLogin()에서 보내온 요청.
   '/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
+  passport.authenticate('google', { scope: ['profile', 'email'] }) // Google 로그인 페이지로 리다이렉트
 );
 
-router.get(
+router.get( // Google Login 후 콜백.
   '/google/callback',
   passport.authenticate('google', {
     failureRedirect: `${CLIENT_URL}/login?error=google_failed`,
     session: false,
   }),
   (req: Request, res: Response) => {
-    if (!req.user) {
+    if (!req.user) { // user가 없는 경우 로그인 에러 페이지로 리다이렉트
       return res.redirect(`${CLIENT_URL}/login?error=no_user`);
     }
+    console.log('✅ Google callback 실행됨');                              
+    console.log('req.user:', req.user);  // 사용자 정보 있나?  
 
     const { accessToken, refreshToken } = generateTokens(req.user as any);
+    console.log('🍪 refreshToken 생성됨:', refreshToken?.substring(0, 20) + '...'); 
 
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true, // Access with javascript code is not available
+      secure: true, // Https only, not http.
+      sameSite: 'lax', // 페이지 내 링크의 쿠키 요청 허용
+      maxAge: 7 * 24 * 60 * 60 * 1000, // A week
       path: '/',
       domain: COOKIE_DOMAIN
     });
+    console.log('쿠키 설정 완료');
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
-      path: '/',
-      domain: COOKIE_DOMAIN
-    });
-
-    res.redirect(`${CLIENT_URL}`);
+    res.redirect(`${CLIENT_URL}?token=${accessToken}`);
+    console.log('리다이렉트 시도');
   }
 );
 
@@ -109,7 +96,7 @@ router.get(
     session: false,
   }),
   (req: Request, res: Response) => {
-    if (!req.user) {
+    if (!req.user) { 
       return res.redirect(`${CLIENT_URL}/login?error=no_user`);
     }
 
@@ -124,23 +111,16 @@ router.get(
       domain: COOKIE_DOMAIN
     });
 
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
-      path: '/',
-      domain: COOKIE_DOMAIN
-    });
-
-    res.redirect(`${CLIENT_URL}`);
+    res.redirect(`${CLIENT_URL}?token=${accessToken}`);
   }
 );
 router.get('/me', async (req: Request, res: Response) => {
   try {
-    const token = req.cookies.accessToken;
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
     if (!token) {
+      console.log('토큰 없음');
       return res.status(401).json({ error: 'No token' });
     }
 
