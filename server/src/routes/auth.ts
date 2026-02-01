@@ -9,6 +9,7 @@ const prisma = new PrismaClient();
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const DEV_MODE = process.env.NODE_ENV !== 'production' && process.env.DEV_MODE === 'true';
+const COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : 'localhost';
 
 if (DEV_MODE) {
   router.get('/dev-login', async (req: Request, res: Response) => {
@@ -36,6 +37,7 @@ if (DEV_MODE) {
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
+        domain: COOKIE_DOMAIN
       });
 
       res.redirect(`${CLIENT_URL}?token=${accessToken}`);
@@ -73,6 +75,7 @@ router.get( // Google Login 후 콜백.
       sameSite: 'lax', // 페이지 내 링크의 쿠키 요청 허용
       maxAge: 7 * 24 * 60 * 60 * 1000, // A week
       path: '/',
+      domain: COOKIE_DOMAIN
     });
     console.log('쿠키 설정 완료');
 
@@ -105,6 +108,7 @@ router.get(
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
+      domain: COOKIE_DOMAIN
     });
 
     res.redirect(`${CLIENT_URL}?token=${accessToken}`);
@@ -172,6 +176,7 @@ router.post('/logout', (req: Request, res: Response) => {
     secure: true,
     sameSite: 'lax',
     path: '/',
+    domain: COOKIE_DOMAIN
   });
 
   res.json({ success: true });
