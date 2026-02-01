@@ -102,6 +102,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * - refetch() 호출 시 (수동)
    */
   const fetchUser = async () => {
+    // 테스트용 인위적 delay (로컬 테스트 시에만 사용)
+    // await new Promise(resolve => setTimeout(resolve, 5000));
+
     try {
       const { user } = await authApi.getMe();
       console.log('받은 user:', user);  // ← 실제 값 확인!
