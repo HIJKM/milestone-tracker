@@ -176,7 +176,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
    * - refreshAccessToken()이 null 반환하면
    * - 재시도하지 않음 → 사용자 재로그인 필요
    */
-  if (response.status === 401 && getToken()) {
+  if (response.status === 401) {
     console.warn('⚠️ Access token expired, attempting to refresh...');
 
     // ===== 새 Access Token 요청 =====
