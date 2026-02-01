@@ -77,6 +77,25 @@ export const useMilestones = () => {
     return true;
   };
 
+  const reorderMilestones = async (orderedIds: string[]) => {
+    const oldMilestones = milestones;
+
+    // UI 즉시 업데이트 (optimistic)
+    const reorderedMilestones = orderedIds.map(id =>
+      milestones.find(m => m.id === id)!
+    );
+    setMilestones(reorderedMilestones);
+
+    // 백그라운드에서 API 호출
+    try {
+      await milestonesApi.reorder(orderedIds);
+    } catch (err) {
+      // 실패시 원래 상태로 롤백
+      setMilestones(oldMilestones);
+      throw err;
+    }
+  };
+
   return {
     milestones,
     loading,
@@ -86,6 +105,7 @@ export const useMilestones = () => {
     deleteMilestone,
     completeMilestone,
     canCompleteMilestone,
+    reorderMilestones,
     refetch: fetchMilestones,
   };
 };

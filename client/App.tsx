@@ -26,6 +26,7 @@ const MilestoneTracker: React.FC = () => {
     completeMilestone,
     deleteMilestone,
     canCompleteMilestone,
+    reorderMilestones,
     refetch,
   } = useMilestones();
 
@@ -34,7 +35,7 @@ const MilestoneTracker: React.FC = () => {
   const [confirmComplete, setConfirmComplete] = useState<Milestone | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Milestone | null>(null);
   const [isReordering, setIsReordering] = useState(false);
-  const [reorderMilestones, setReorderMilestones] = useState<Milestone[]>([]);
+  const [reorderList, setReorderList] = useState<Milestone[]>([]);
   const [dragState, setDragState] = useState({
     activeId: null as string | null,
     initialY: 0,
@@ -122,7 +123,7 @@ const MilestoneTracker: React.FC = () => {
   const handleOpenReorder = () => {
     // Filter only incomplete milestones
     const incomplete = milestones.filter(m => !m.completed);
-    setReorderMilestones(incomplete);
+    setReorderList(incomplete);
     setIsReordering(true);
   };
 
@@ -151,7 +152,7 @@ const MilestoneTracker: React.FC = () => {
       const deltaY = clientY - dragState.initialY;
       const offsetIndex = Math.round(deltaY / (dragState.itemHeight + 8)); // 8 is the gap + padding
       let newIndex = dragState.startIndex + offsetIndex;
-      newIndex = Math.max(0, Math.min(reorderMilestones.length - 1, newIndex));
+      newIndex = Math.max(0, Math.min(reorderList.length - 1, newIndex));
 
       setDragState(prev => ({
         ...prev,
@@ -164,10 +165,10 @@ const MilestoneTracker: React.FC = () => {
       if (!dragState.activeId) return;
 
       if (dragState.startIndex !== dragState.currentIndex) {
-        const newList = [...reorderMilestones];
+        const newList = [...reorderList];
         const [movedItem] = newList.splice(dragState.startIndex, 1);
         newList.splice(dragState.currentIndex, 0, movedItem);
-        setReorderMilestones(newList);
+        setReorderList(newList);
       }
 
       setDragState({
@@ -195,36 +196,37 @@ const MilestoneTracker: React.FC = () => {
       window.removeEventListener('touchmove', handleMove as any);
       window.removeEventListener('touchend', handleEnd);
     };
-  }, [dragState, reorderMilestones]);
+  }, [dragState, reorderList]);
 
   const handleSaveReorder = async () => {
     try {
-      const orderedIds = reorderMilestones.map(m => m.id);
-      await milestonesApi.reorder(orderedIds);
+      const orderedIds = reorderList.map(m => m.id);
+      // Optimistic update: UI 즉시 업데이트
+      reorderMilestones(orderedIds);
       setIsReordering(false);
-      // Refetch milestones to update the UI with new order
-      await refetch();
     } catch (error) {
       console.error('Failed to reorder milestones:', error);
+      // reorderMilestones에서 실패시 자동으로 롤백됨
     }
   };
 
   const handleAddMilestone = async () => {
     if (!newMilestone.title.trim()) return;
 
-    try {
-      await createMilestone({
-        title: newMilestone.title.trim(),
-        description: newMilestone.description.trim(),
-        type: newMilestone.type,
-        tags: newMilestone.tags.split(',').map(t => t.trim()).filter(t => t)
-      });
+    // UI 즉시 초기화 (optimistic)
+    setNewMilestone({ title: '', description: '', type: 'feature', tags: '' });
+    setIsAdding(false);
 
-      setNewMilestone({ title: '', description: '', type: 'feature', tags: '' });
-      setIsAdding(false);
-    } catch (error) {
+    // 백그라운드에서 API 호출
+    createMilestone({
+      title: newMilestone.title.trim(),
+      description: newMilestone.description.trim(),
+      type: newMilestone.type,
+      tags: newMilestone.tags.split(',').map(t => t.trim()).filter(t => t)
+    }).catch(error => {
       console.error('Failed to create milestone:', error);
-    }
+      // 실패시 사용자에게 알림 필요
+    });
   };
 
   const handleLogoutConfirm = async () => {
@@ -730,10 +732,10 @@ const MilestoneTracker: React.FC = () => {
             </div>
 
             <div className="flex-grow overflow-y-auto p-6 space-y-2">
-              {reorderMilestones.length === 0 ? (
+              {reorderList.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">No incomplete milestones to reorder</p>
               ) : (
-                reorderMilestones.map((milestone, index) => {
+                reorderList.map((milestone, index) => {
                   const isDragging = dragState.activeId === milestone.id;
                   const dragOffset = dragState.currentY - dragState.initialY;
 
@@ -809,7 +811,7 @@ const MilestoneTracker: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveReorder}
-                disabled={reorderMilestones.length === 0}
+                disabled={reorderList.length === 0}
                 className="flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Order
