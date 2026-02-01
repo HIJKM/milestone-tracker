@@ -57,22 +57,12 @@ const MilestoneTracker: React.FC = () => {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initial Auto-Scroll to first incomplete milestone
+  // 첫 로드 시 불완료 첫 번째로 스크롤
   useEffect(() => {
-    if (loading || milestones.length === 0) return;
+    if (loading || milestones.length === 0 || !isFirstLoad.current) return;
 
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        const firstIncompleteIndex = milestones.findIndex(m => !m.completed);
-        const targetIndex = firstIncompleteIndex === -1 ? milestones.length - 1 : firstIncompleteIndex;
-
-        const nodes = scrollContainerRef.current.querySelectorAll('.relative.flex.items-start.group');
-        if (nodes[targetIndex]) {
-          nodes[targetIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }, 100);
-    return () => clearTimeout(timer);
+    isFirstLoad.current = false;
+    scrollToFirstIncomplete();
   }, [loading, milestones.length]);
 
   const handleToggleMilestone = (id: string) => {
@@ -114,6 +104,8 @@ const MilestoneTracker: React.FC = () => {
       if (selectedMilestone?.id === confirmDelete.id) {
         setSelectedMilestone(null);
       }
+      // 삭제 후 첫 번째 불완료 마일스톤으로 스크롤
+      scrollToFirstIncomplete();
     } catch (error) {
       console.error('Failed to delete milestone:', error);
     }
@@ -205,19 +197,91 @@ const MilestoneTracker: React.FC = () => {
       // Optimistic update: UI 즉시 업데이트
       reorderMilestones(orderedIds);
       setIsReordering(false);
+      // Reorder 후 첫 번째 불완료 마일스톤으로 스크롤
+      scrollToFirstIncomplete();
     } catch (error) {
       console.error('Failed to reorder milestones:', error);
       // reorderMilestones에서 실패시 자동으로 롤백됨
     }
   };
 
-  const scrollToMilestone = (milestoneId: string) => {
+  // Easing 함수 (느리다->빠르다->느려지는)
+  const getSmoothStep = (t, k = 6) => {
+    // t가 0일 때와 1일 때 예외 처리
+    // if (t <= 0) return 0;
+    // if (t >= 1) return 1;
+
+    /**
+     * [수학 공식]
+     * f(t) = (tanh(k * (t - 0.5)) / tanh(0.5 * k) + 1) / 2
+     * * - 가우시안 분포의 적분 형태와 유사한 S자 곡선을 생성합니다.
+     * - 시작(0)과 끝(1)에서의 기울기가 0에 수렴하여 매우 부드럽습니다.
+     * - 별도의 조건문 없이 단일 수식으로 계산되어 버벅임이 없습니다.
+     */
+    const upper = Math.tanh(k * (t - 0.5));
+    const lower = Math.tanh(0.5 * k);
+    
+    return (upper / lower + 1) / 2;
+  };
+
+  // 부드러운 스크롤 애니메이션
+  const animateScroll = (container: HTMLElement, targetElement: HTMLElement, duration = 150) => {
+    const startScroll = container.scrollTop;
+    const targetScroll = targetElement.offsetTop - container.clientHeight / 2;
+    const distance = targetScroll - startScroll;
+    let start = 0;
+
+    const animate = (timestamp: number) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = getSmoothStep(progress);
+
+      container.scrollTop = startScroll + distance * ease;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  };
+
+  // 불완료 마일스톤 중 첫 번째로 스크롤
+  const scrollToFirstIncomplete = () => {
+    setTimeout(() => {
+      if (scrollContainerRef.current && milestones.length > 0) {
+        const firstIncomplete = milestones.find(m => !m.completed);
+
+        if (firstIncomplete) {
+          const nodes = scrollContainerRef.current.querySelectorAll('.relative.flex.items-start.group');
+          for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i] as HTMLElement;
+            if (node.textContent?.includes(firstIncomplete.title) &&
+                !node.textContent?.includes('✓ Milestone Completed')) {
+              animateScroll(scrollContainerRef.current, node);
+              break;
+            }
+          }
+        }
+      }
+    }, 100);
+  };
+
+  // 불완료 마일스톤 중 마지막으로 스크롤
+  const scrollToLastIncomplete = () => {
     setTimeout(() => {
       if (scrollContainerRef.current) {
         const nodes = scrollContainerRef.current.querySelectorAll('.relative.flex.items-start.group');
-        const targetIndex = milestones.findIndex(m => m.id === milestoneId);
-        if (targetIndex !== -1 && nodes[targetIndex]) {
-          nodes[targetIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        let lastIncompleteNode: HTMLElement | null = null;
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i] as HTMLElement;
+          if (!node.textContent?.includes('✓ Milestone Completed')) {
+            lastIncompleteNode = node;
+          }
+        }
+        if (lastIncompleteNode) {
+          animateScroll(scrollContainerRef.current, lastIncompleteNode);
         }
       }
     }, 100);
@@ -236,9 +300,9 @@ const MilestoneTracker: React.FC = () => {
       description: newMilestone.description.trim(),
       type: newMilestone.type,
       tags: newMilestone.tags.split(',').map(t => t.trim()).filter(t => t)
-    }).then(newMilestone => {
-      // 새 마일스톤으로 스크롤
-      scrollToMilestone(newMilestone.id);
+    }).then(() => {
+      // 불완료 마일스톤 중 마지막으로 스크롤
+      scrollToLastIncomplete();
     }).catch(error => {
       console.error('Failed to create milestone:', error);
     });
