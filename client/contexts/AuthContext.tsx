@@ -104,6 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { user } = await authApi.getMe();
       console.log('user 불러오기 성공');
+      console.log('받은 user:', user);  // ← 실제 값 확인!
       setUser(user);
     } catch {
       // 토큰 갱신 실패 또는 기타 에러
