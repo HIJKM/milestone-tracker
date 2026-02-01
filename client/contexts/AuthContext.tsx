@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ===== 상태 관리 =====
   const [user, setUser] = useState<User | null>(null); // 현재 사용자
   const [loading, setLoading] = useState(true); // 초기화 상태
-  const [loadingStatus, setLoadingStatus] = useState<'booting' | 'authorizing' | 'refreshing' | 'idle'>('booting');
+  const [loadingStatus, setLoadingStatus] = useState<'booting' | 'authorizing' | 'refreshing' | 'idle'>('authorizing');
 
   /**
    * =====================================
@@ -271,7 +271,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 항상 fetchUser() 호출
     // 토큰이 있으면: 그냥 사용
     // 토큰이 없으면: client.ts에서 /auth/refresh로 자동 갱신
-    setLoadingStatus('authorizing');
+    setLoadingStatus('booting');
     fetchUser();
   }, []); // 앱 초기화 시에만 한 번 실행
 
