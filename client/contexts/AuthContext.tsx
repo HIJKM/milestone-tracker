@@ -229,14 +229,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
      *    → credentials: 'include' 사용하는가?
      */
 
-    // 현재 토큰이 있으면 사용자 정보 로드
-    if (getToken()) {
-      // 메모리/sessionStorage에 토큰 있음 → 사용자 정보 조회
-      fetchUser();
-    } else {
-      // 토큰 없음 → 로그인 화면 표시
-      setLoading(false);
-    }
+    // 항상 fetchUser() 호출
+    // 토큰이 있으면: 그냥 사용
+    // 토큰이 없으면: client.ts에서 /auth/refresh로 자동 갱신
+    fetchUser();
   }, []); // 앱 초기화 시에만 한 번 실행
 
   /**
