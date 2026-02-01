@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MilestoneNode } from './components/MilestoneNode';
 import { LoginPage } from './components/LoginPage';
+import { LoadingScreen } from './components/LoadingScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useMilestones } from './hooks/useMilestones';
 import { Milestone, milestonesApi } from './api/client';
@@ -18,10 +19,10 @@ import {
 } from 'lucide-react';
 
 const MilestoneTracker: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, loading, loadingStatus, logout } = useAuth();
   const {
     milestones,
-    loading,
+    loading: milestonesLoading,
     createMilestone,
     completeMilestone,
     deleteMilestone,
@@ -321,11 +322,7 @@ const MilestoneTracker: React.FC = () => {
   const progressPercent = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#0d1117]">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-      </div>
-    );
+    return <LoadingScreen status={loadingStatus} />;
   }
 
   return (
@@ -995,14 +992,10 @@ const App: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, loadingStatus } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#0d1117]">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-      </div>
-    );
+    return <LoadingScreen status={loadingStatus} />;
   }
 
   if (!user) {

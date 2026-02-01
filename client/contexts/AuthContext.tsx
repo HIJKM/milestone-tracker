@@ -51,6 +51,7 @@ import { saveToken, getToken, removeToken } from '../utils/tokenStorage';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  loadingStatus: 'initializing' | 'login' | 'idle';
   login: (provider: 'google' | 'github') => void;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -77,6 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ===== 상태 관리 =====
   const [user, setUser] = useState<User | null>(null); // 현재 사용자
   const [loading, setLoading] = useState(true); // 초기화 상태
+  const [loadingStatus, setLoadingStatus] = useState<'initializing' | 'login' | 'idle'>('initializing');
 
   /**
    * =====================================
@@ -110,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       // 초기화 완료 (성공/실패 무관)
       setLoading(false);
+      setLoadingStatus('idle');
     }
   };
 
@@ -167,10 +170,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (tokenFromURL) {
       // ✅ URL에 토큰이 있으면: 메모리 + sessionStorage에 저장
       saveToken(tokenFromURL);
+      setLoadingStatus('login');
 
       // 🔐 보안: URL에서 token 파라미터 제거
       // 브라우저 히스토리에 ?token=xxx가 남지 않도록 처리
       window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      setLoadingStatus('initializing');
     }
 
     /**
@@ -322,7 +328,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refetch: fetchUser }}>
+    <AuthContext.Provider value={{ user, loading, loadingStatus, login, logout, refetch: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );
