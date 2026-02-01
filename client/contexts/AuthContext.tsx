@@ -100,15 +100,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * - refetch() 호출 시 (수동)
    */
   const fetchUser = async () => {
-    console.log('fetchUser() 실행됨.'); // 실행됨.
     try {
       const { user } = await authApi.getMe();
-      console.log('user 불러오기 성공');
       console.log('받은 user:', user);  // ← 실제 값 확인!
       setUser(user);
     } catch {
       // 토큰 갱신 실패 또는 기타 에러
-      console.log('user 불러오기 실패');
       setUser(null);
     } finally {
       // 초기화 완료 (성공/실패 무관)

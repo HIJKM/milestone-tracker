@@ -84,10 +84,15 @@ async function refreshAccessToken(): Promise<string | null> {
     }
 
     // ✅ 갱신 성공
-    const { accessToken } = await response.json();
+    const data = await response.json();
+    console.log('📡 /auth/refresh 응답:', data);  // ← 뭐가 받아지는지 확인
+
+    const { accessToken } = data;
+    console.log('📡 추출된 accessToken:', accessToken?.substring(0, 20) + '...');
 
     // 새 Access Token을 메모리 + sessionStorage에 저장
     saveToken(accessToken);
+    console.log('💾 saveToken() 실행됨');
 
     console.log('✅ Access token refreshed');
     return accessToken;
@@ -146,7 +151,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   // ===== 1단계: 첫 번째 요청 =====
   let response = await fetch(`${API_URL}${endpoint}`, config);
-  console.log('fetch excuted'); // 실행됨.
+  console.log(`📡 [1단계] ${customOptions.method} ${endpoint} → status: ${response.status}`);
   /**
    * ===== 2단계: Access Token 자동 갱신 로직 =====
    *
