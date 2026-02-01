@@ -120,15 +120,15 @@ router.get('/me', async (req: Request, res: Response) => {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
     if (!token) {
-      console.log('토큰 엄슴');
-      return res.json({ user: null });
+      console.log('토큰 없음');
+      return res.status(401).json({ error: 'No token' });
     }
 
     const { verifyToken } = await import('../utils/jwt.js');
     const payload = verifyToken(token);
 
     if (!payload) {
-      return res.json({ user: null });
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
     const user = await prisma.user.findUnique({
