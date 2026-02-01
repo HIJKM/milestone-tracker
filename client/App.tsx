@@ -69,7 +69,7 @@ const MilestoneTracker: React.FC = () => {
           nodes[targetIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
-    }, 800);
+    }, 100);
     return () => clearTimeout(timer);
   }, [loading, milestones.length]);
 
