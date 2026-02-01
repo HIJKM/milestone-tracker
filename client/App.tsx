@@ -321,8 +321,9 @@ const MilestoneTracker: React.FC = () => {
   const completedCount = milestones.filter(m => m.completed).length;
   const progressPercent = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
 
-  if (loading) {
-    return <LoadingScreen status={loadingStatus} />;
+  // milestones이 로딩 중이면 splash 표시
+  if (milestonesLoading) {
+    return <LoadingScreen status="booting" />;
   }
 
   return (

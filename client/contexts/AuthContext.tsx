@@ -51,7 +51,7 @@ import { saveToken, getToken, removeToken } from '../utils/tokenStorage';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  loadingStatus: 'initializing' | 'login' | 'idle';
+  loadingStatus: 'booting' | 'authorizing' | 'login' | 'idle';
   login: (provider: 'google' | 'github') => void;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ===== 상태 관리 =====
   const [user, setUser] = useState<User | null>(null); // 현재 사용자
   const [loading, setLoading] = useState(true); // 초기화 상태
-  const [loadingStatus, setLoadingStatus] = useState<'initializing' | 'login' | 'idle'>('initializing');
+  const [loadingStatus, setLoadingStatus] = useState<'booting' | 'authorizing' | 'login' | 'idle'>('booting');
 
   /**
    * =====================================
@@ -109,9 +109,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { user } = await authApi.getMe();
       console.log('받은 user:', user);  // ← 실제 값 확인!
       setUser(user);
-    } catch {
-      // 토큰 갱신 실패 또는 기타 에러
-      setUser(null);
+    } catch (error: any) {
+      // 401 응답: 토큰이 만료되었을 가능성 → authorizing 상태로 변경
+      if (error.status === 401) {
+        console.log('📡 401 응답 받음, 토큰 갱신 시도...');
+        setLoadingStatus('authorizing');
+
+        // refresh 토큰으로 새 access 토큰 요청
+        try {
+          const refreshResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (refreshResponse.ok) {
+            const { accessToken } = await refreshResponse.json();
+            saveToken(accessToken);
+            console.log('✅ 토큰 갱신 성공, 다시 시도...');
+
+            // 갱신 후 다시 사용자 정보 조회
+            const { user: refreshedUser } = await authApi.getMe();
+            setUser(refreshedUser);
+          } else {
+            console.log('❌ 토큰 갱신 실패');
+            setUser(null);
+          }
+        } catch (refreshError) {
+          console.error('❌ 토큰 갱신 오류:', refreshError);
+          setUser(null);
+        }
+      } else {
+        // 다른 에러
+        setUser(null);
+      }
     } finally {
       // 초기화 완료 (성공/실패 무관)
       setLoading(false);
@@ -179,7 +210,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // 브라우저 히스토리에 ?token=xxx가 남지 않도록 처리
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
-      setLoadingStatus('initializing');
+      setLoadingStatus('booting');
     }
 
     /**

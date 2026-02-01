@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 interface LoadingScreenProps {
-  status: 'initializing' | 'login' | 'idle';
+  status: 'booting' | 'authorizing' | 'login' | 'idle';
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
@@ -32,8 +32,10 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
     switch (status) {
       case 'login':
         return `login${dots}`;
-      case 'initializing':
-        return `loading${dots}`;
+      case 'authorizing':
+        return `authorizing${dots}`;
+      case 'booting':
+        return `booting${dots}`;
       default:
         return `loading${dots}`;
     }
