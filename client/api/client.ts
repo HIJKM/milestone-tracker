@@ -146,7 +146,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   // ===== 1단계: 첫 번째 요청 =====
   let response = await fetch(`${API_URL}${endpoint}`, config);
-
+  console.log('fetch excuted');
   /**
    * ===== 2단계: Access Token 자동 갱신 로직 =====
    *

@@ -100,6 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * - refetch() 호출 시 (수동)
    */
   const fetchUser = async () => {
+    console.log('fetchUser() 실행됨.');
     try {
       const { user } = await authApi.getMe();
       setUser(user);
